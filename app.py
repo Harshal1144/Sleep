@@ -2,26 +2,23 @@ import streamlit as st
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import plotly.express as px
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import confusion_matrix
 
-# Set Streamlit page configuration
+# Set page config
 st.set_page_config(page_title="Sleep Disorder Predictor", layout="wide")
 
-# Load and preprocess the uploaded CSV
+# Load and preprocess data
 @st.cache_data
 def load_data():
     df = pd.read_csv("/mnt/data/Sleep.csv")
     df.dropna(inplace=True)
-
-    # Split Blood Pressure
     df[['Systolic_BP', 'Diastolic_BP']] = df['Blood Pressure'].str.split('/', expand=True).astype(int)
     df.drop('Blood Pressure', axis=1, inplace=True)
 
-    # Encode categorical columns
+    # Label encoding
     le_gender = LabelEncoder()
     le_occupation = LabelEncoder()
     le_bmi = LabelEncoder()
@@ -47,43 +44,47 @@ def load_data():
 # Load everything
 df, X, y, model, scaler, le_gender, le_occupation, le_bmi, le_sleep, X_train, X_test, y_train, y_test = load_data()
 
-# Sidebar Navigation
+# Sidebar navigation
 st.sidebar.title("🔍 Navigation")
-page = st.sidebar.radio("Go to", ["📊 Dataset Dashboard", "📈 Visual Insights", "🧠 Predict Sleep Disorder"])
+page = st.sidebar.radio("Go to", ["📊 Dataset Overview", "📉 Visual Insights", "🧠 Predict Sleep Disorder"])
 
 # 📊 Dataset Overview
-if page == "📊 Dataset Dashboard":
+if page == "📊 Dataset Overview":
     st.markdown("<h1 style='text-align: center; color: #4B8BBE;'>📊 Sleep Disorder Dataset Overview</h1>", unsafe_allow_html=True)
     st.dataframe(df.head(), use_container_width=True)
-    st.info("Data preview shows the first few entries after cleaning and transformation.")
 
-# 📈 Visual Analytics Page
-elif page == "📈 Visual Insights":
-    st.markdown("<h1 style='text-align: center; color: #F48C06;'>📈 Visual Analysis of Sleep Disorders</h1>", unsafe_allow_html=True)
+# 📉 Visual Insights
+elif page == "📉 Visual Insights":
+    st.markdown("<h1 style='text-align: center; color: #F48C06;'>📉 Visual Insights</h1>", unsafe_allow_html=True)
 
-    # Pie Chart of Sleep Disorders
+    # Bar chart for sleep disorders
     st.subheader("🧩 Sleep Disorder Distribution")
     disorder_counts = df['Sleep Disorder'].value_counts()
     disorder_labels = le_sleep.inverse_transform(disorder_counts.index)
-    fig1 = px.pie(values=disorder_counts.values, names=disorder_labels, title='Sleep Disorder Classes')
-    st.plotly_chart(fig1, use_container_width=True)
 
-    # Confusion Matrix
-    st.subheader("🔍 Confusion Matrix (Test Data)")
+    fig1, ax1 = plt.subplots()
+    sns.barplot(x=disorder_labels, y=disorder_counts.values, palette="Set2", ax=ax1)
+    ax1.set_title("Sleep Disorder Distribution")
+    ax1.set_ylabel("Count")
+    ax1.set_xlabel("Sleep Disorder")
+    st.pyplot(fig1)
+
+    # Confusion matrix
+    st.subheader("📌 Confusion Matrix")
     y_pred = model.predict(X_test)
     cm = confusion_matrix(y_test, y_pred)
     fig2, ax2 = plt.subplots()
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=le_sleep.classes_, yticklabels=le_sleep.classes_, ax=ax2)
     ax2.set_xlabel("Predicted")
     ax2.set_ylabel("Actual")
+    ax2.set_title("Model Performance (Test Set)")
     st.pyplot(fig2)
 
-# 🧠 Prediction Page
+# 🧠 Predictor
 elif page == "🧠 Predict Sleep Disorder":
     st.markdown("<h1 style='text-align: center; color: #3A86FF;'>🧠 Sleep Disorder Prediction</h1>", unsafe_allow_html=True)
-    st.markdown("### 🔽 Enter Patient Details:")
+    st.markdown("### 🧾 Enter Patient Details")
 
-    # Input Fields
     col1, col2 = st.columns(2)
     with col1:
         gender = st.selectbox("Gender", le_gender.classes_)
@@ -98,7 +99,6 @@ elif page == "🧠 Predict Sleep Disorder":
         systolic_bp = st.number_input("Systolic BP", min_value=90, max_value=200, value=120)
         diastolic_bp = st.number_input("Diastolic BP", min_value=60, max_value=130, value=80)
 
-    # Prediction Button
     if st.button("🔍 Predict Sleep Disorder"):
         input_dict = {
             "Gender": le_gender.transform([gender])[0],
