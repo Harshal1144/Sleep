@@ -7,63 +7,70 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# App title
-st.title("🛌 Sleep Disorder Prediction")
-st.write("This app uses logistic regression to predict sleep disorders based on health and lifestyle data.")
+# Custom Streamlit Page Configuration
+st.set_page_config(page_title="Sleep Disorder Prediction", layout="centered")
 
-# File uploader
-uploaded_file = st.file_uploader("https://raw.githubusercontent.com/Harshal1144/Sleep/refs/heads/main/Sleep.csv", type=["csv"])
+# App Title
+st.markdown("<h1 style='text-align: center; color: #4B8BBE;'>🛌 Sleep Disorder Prediction App</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>This app uses Logistic Regression to predict sleep disorders based on health and lifestyle data.</p>", unsafe_allow_html=True)
 
-if uploaded_file is not None:
-    # Load and clean dataset
-    df = pd.read_csv(uploaded_file)
+# Load CSV directly from GitHub
+DATA_URL = "https://raw.githubusercontent.com/Harshal1144/Sleep/main/Sleep.csv"
+
+@st.cache_data
+def load_data(url):
+    df = pd.read_csv(url)
     df.dropna(inplace=True)
-
-    # Split 'Blood Pressure' into systolic and diastolic
     df[['Systolic_BP', 'Diastolic_BP']] = df['Blood Pressure'].str.split('/', expand=True).astype(int)
     df.drop('Blood Pressure', axis=1, inplace=True)
-
-    # Encode categorical variables
     le = LabelEncoder()
-    categorical_cols = ['Gender', 'Occupation', 'BMI Category', 'Sleep Disorder']
-    for col in categorical_cols:
+    for col in ['Gender', 'Occupation', 'BMI Category', 'Sleep Disorder']:
         df[col] = le.fit_transform(df[col])
+    return df
 
-    # Visualize class distribution
-    st.subheader("📊 Sleep Disorder Distribution")
-    fig, ax = plt.subplots()
-    sns.countplot(x='Sleep Disorder', data=df, ax=ax)
-    st.pyplot(fig)
+df = load_data(DATA_URL)
 
-    # Feature/target split
-    X = df.drop('Sleep Disorder', axis=1)
-    y = df['Sleep Disorder']
+# Dataset Preview
+st.subheader("📋 Dataset Preview")
+st.dataframe(df.head(), use_container_width=True)
 
-    # Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Distribution Plot
+st.subheader("📊 Sleep Disorder Distribution")
+fig, ax = plt.subplots()
+sns.countplot(x='Sleep Disorder', data=df, ax=ax)
+ax.set_title("Sleep Disorder Classes")
+st.pyplot(fig)
 
-    # Scale features
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+# Features and Target
+X = df.drop('Sleep Disorder', axis=1)
+y = df['Sleep Disorder']
 
-    # Train model
-    model = LogisticRegression()
-    model.fit(X_train_scaled, y_train)
-    y_pred = model.predict(X_test_scaled)
+# Split and Scale
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
 
-    # Show model performance
-    st.subheader("📈 Model Performance")
-    st.write(f"**Accuracy:** {accuracy_score(y_test, y_pred):.2f}")
-    st.text("Classification Report:")
-    st.text(classification_report(y_test, y_pred))
+# Model Training
+model = LogisticRegression()
+model.fit(X_train_scaled, y_train)
+y_pred = model.predict(X_test_scaled)
 
-    # Confusion matrix
-    st.subheader("🧩 Confusion Matrix")
-    cm = confusion_matrix(y_test, y_pred)
-    fig2, ax2 = plt.subplots()
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax2)
-    st.pyplot(fig2)
+# Model Evaluation
+st.subheader("📈 Model Performance")
+st.markdown(f"- **Accuracy**: `{accuracy_score(y_test, y_pred):.2f}`")
+st.markdown("**Classification Report:**")
+st.text(classification_report(y_test, y_pred))
 
-else:
-    st.info("👆 Please upload a CSV file to begin.")
+# Confusion Matrix
+st.subheader("🧩 Confusion Matrix")
+cm = confusion_matrix(y_test, y_pred)
+fig2, ax2 = plt.subplots()
+sns.heatmap(cm, annot=True, fmt='d', cmap='YlGnBu', ax=ax2)
+ax2.set_xlabel("Predicted")
+ax2.set_ylabel("Actual")
+st.pyplot(fig2)
+
+# Footer
+st.markdown("---")
+st.markdown("<p style='text-align: center;'>Built with ❤️ using Streamlit</p>", unsafe_allow_html=True)
