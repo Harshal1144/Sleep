@@ -12,7 +12,7 @@ st.title("🛌 Sleep Disorder Prediction")
 st.write("This app uses logistic regression to predict sleep disorders based on health and lifestyle data.")
 
 # File uploader
-uploaded_file = st.file_uploader("Sleep.csv", type=["csv"])
+uploaded_file = st.file_uploader("https://raw.githubusercontent.com/Harshal1144/Sleep/refs/heads/main/Sleep.csv", type=["csv"])
 
 if uploaded_file is not None:
     # Load and clean dataset
